@@ -1,7 +1,7 @@
 import React from 'react';
 import { FunctionComponent, useState, useEffect } from 'react';
 import { Text, View, StatusBar, TouchableOpacity } from 'react-native';
-
+import DatePicker from './Components/DatePicker';
 import styles from './styles/App';
 
 const formatNUmber = (number: number) => `0${number}`.slice(-2);
@@ -13,38 +13,61 @@ const getRemaining = (time: number) => {
 };
 
 const App: FunctionComponent<{}> = () => {
-  let interval: any;
-  let [remainingSeconds, setRemSeconds] = useState(30);
-  let [isRunning, setRunning] = useState(false);
+  let [selectedSeconds, setSeconds]: any = useState('5');
+  let [remainingSeconds, setRemSeconds] = useState(selectedSeconds);
+  let [stopped, setStop] = useState(false);
   const { minutes, seconds } = getRemaining(remainingSeconds);
-
-  const start = () => {
-    setRemSeconds(remainingSeconds - 1);
-    setRunning(true);
-
-    interval = setInterval(() => {
-      setRemSeconds((remainingSeconds = remainingSeconds - 1));
-    }, 1000);
-  };
-  // todo: conntinue
-  let stop = () => {};
+  let interval;
+  let [isRunning, setRunning] = useState(false);
+  let [selectedMinutes, setMinutes]: any = useState('0');
 
   useEffect(() => {
+    setRemSeconds(parseInt(selectedMinutes) * 60 + parseInt(selectedSeconds));
     return () => {
-      clearInterval(interval);
-      setRemSeconds(20);
       setRunning(false);
+      setRemSeconds(5);
     };
-  }, [remainingSeconds < 0]);
+  }, [remainingSeconds <= 0, selectedSeconds, selectedMinutes, stopped]);
+
+  const start = () => {
+    setRunning(true);
+    console.log(remainingSeconds);
+
+    interval = setInterval(() => {
+      setRemSeconds(() => {
+        if (remainingSeconds > 0) {
+          return (remainingSeconds -= 1);
+        } else {
+          clearInterval(interval);
+          setRemSeconds(remainingSeconds);
+        }
+        return () => clearInterval(interval);
+      });
+    }, 1000);
+  };
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <Text style={styles.timerText}>{`${minutes}:${seconds}`}</Text>
+      {isRunning ? (
+        <Text style={styles.timerText}>{`${minutes}:${seconds}`}</Text>
+      ) : (
+        <DatePicker
+          selectedMin={selectedMinutes}
+          selectedSec={selectedSeconds}
+          onChangeMin={itemValue => {
+            setMinutes(itemValue);
+          }}
+          onChangeSec={itemValue => setSeconds(itemValue)}
+        />
+      )}
 
       {isRunning ? (
         <TouchableOpacity
-          onPress={() => setRemSeconds(-1)}
+          onPress={() => {
+            setRemSeconds(-1);
+            return () => clearInterval(interval);
+          }}
           style={[styles.button, styles.buttonStop]}
         >
           <Text style={[styles.buttonText, styles.buttonStopText]}>Stop</Text>
